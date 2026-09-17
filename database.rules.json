@@ -1,0 +1,36 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin'",
+
+      "$uid": {
+        "profile": {
+          "username": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')"
+          },
+          "role": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+            ".write": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin'"
+          },
+          "createdAt": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')"
+          },
+          "createdBy": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+            ".write": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin'"
+          }
+        },
+
+        "tasks": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+          ".write": "auth != null && auth.uid === $uid",
+          "$taskId": {
+            ".validate": "newData.hasChild('task')"
+          }
+        }
+      }
+    }
+  }
+}
