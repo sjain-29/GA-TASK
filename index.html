@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Project Task Tracker</title>
+<meta name="theme-color" content="#14232B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Task Tracker">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14232B; --ink-70:#42565f; --ink-45:#78888f;
+  --paper:#EEF1F0; --surface:#FFFFFF; --line:#D6DDDB;
+  --amber:#C47A14; --amber-bg:#FBEEDA;
+  --alert:#A93325; --alert-bg:#FAE3E0;
+  --go:#15715A; --go-bg:#DFEFE9;
+  --steel:#2C5F73; --steel-bg:#E0EAEF;
+  --rad:10px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45;
+  padding-bottom:calc(74px + var(--safe-b));
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+
+/* ---------- auth screen ---------- */
+#authScreen{
+  position:fixed;inset:0;z-index:200;background:var(--ink);color:#fff;
+  display:flex;align-items:center;justify-content:center;padding:24px
+}
+.auth-card{width:100%;max-width:360px}
+.auth-card h1{font-size:19px;font-weight:600;margin:0 0 4px}
+.auth-card p.sub{color:#9FB6BF;font-size:13px;margin:0 0 26px}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-size:12px;color:#9FB6BF;margin-bottom:5px;font-weight:600}
+.auth-field input{
+  width:100%;padding:12px 13px;border-radius:9px;border:1px solid #2C444E;
+  background:#1B2E37;color:#fff;font-size:15px
+}
+.auth-field input:focus-visible{outline:2px solid #66C6A6}
+.auth-err{background:#3A2320;color:#F08D7E;border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:14px;display:none}
+.auth-err.on{display:block}
+.auth-btn{
+  width:100%;padding:13px;border-radius:9px;background:#66C6A6;color:#0E2019;
+  font-weight:700;font-size:15px;margin-top:4px
+}
+.auth-btn:disabled{opacity:.55}
+.auth-check{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#9FB6BF;margin:14px 0 4px}
+.auth-note{font-size:11.5px;color:#6C848C;margin-top:20px;line-height:1.6}
+#authGate{display:none}
+#authGate.on{display:flex}
+
+/* ---------- top bar ---------- */
+header{
+  position:sticky;top:0;z-index:40;background:var(--ink);color:#fff;
+  padding:calc(10px + env(safe-area-inset-top,0px)) 14px 0;
+}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand h1{font-size:16px;font-weight:600;margin:0;letter-spacing:.2px}
+.brand-right{display:flex;align-items:center;gap:8px}
+.brand .today{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#9FB6BF;font-weight:500}
+.who{font-size:11px;color:#9FB6BF;background:rgba(255,255,255,.08);padding:3px 9px;border-radius:99px;display:flex;align-items:center;gap:5px}
+.who .dot{width:6px;height:6px;border-radius:50%;background:#66C6A6}
+.who.off .dot{background:#F08D7E}
+.stats{display:flex;gap:16px;margin:8px 0 10px;overflow-x:auto;scrollbar-width:none}
+.stats::-webkit-scrollbar{display:none}
+.stat{flex:0 0 auto}
+.stat b{display:block;font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:600;line-height:1.1}
+.stat span{font-size:10.5px;color:#9FB6BF;white-space:nowrap}
+.stat.warn b{color:#F0B357}
+.stat.bad b{color:#F08D7E}
+.stat.good b{color:#66C6A6}
+
+/* ---------- date rail ---------- */
+.rail{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;scroll-snap-type:x proximity}
+.rail::-webkit-scrollbar{display:none}
+.day{
+  flex:0 0 auto;width:46px;padding:6px 0 5px;border-radius:8px;text-align:center;
+  background:rgba(255,255,255,.07);color:#C7D6DC;scroll-snap-align:center;transition:background .12s
+}
+.day .dow{font-size:9.5px;letter-spacing:.6px;opacity:.75}
+.day .num{font-family:"IBM Plex Mono",monospace;font-size:17px;font-weight:600;line-height:1.2}
+.day .mon{font-size:9px;opacity:.6}
+.day .pip{height:4px;width:4px;border-radius:50%;margin:3px auto 0;background:transparent}
+.day .pip.on{background:#F0B357}
+.day.is-today{box-shadow:inset 0 0 0 1px #66C6A6}
+.day.sel{background:#fff;color:var(--ink)}
+.day.sel .dow,.day.sel .mon{opacity:.7}
+
+/* ---------- content ---------- */
+main{padding:14px 12px 8px;max-width:840px;margin:0 auto}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px}
+.section-head h2{font-size:14px;font-weight:600;margin:0}
+.section-head .count{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-45)}
+
+/* ---------- task card ---------- */
+.card{
+  display:flex;gap:10px;background:var(--surface);border:1px solid var(--line);
+  border-left:4px solid var(--steel);border-radius:var(--rad);padding:10px 12px 10px 10px;margin-bottom:8px
+}
+.card.cf{border-left-color:var(--alert);background:#FFFBFA}
+.card.today{border-left-color:var(--amber)}
+.card.done{border-left-color:var(--go);opacity:.62}
+.tick{
+  flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);
+  margin-top:2px;display:grid;place-items:center;color:transparent;font-size:14px;font-weight:700;transition:.12s
+}
+.tick:hover{border-color:var(--go)}
+.card.done .tick{background:var(--go);border-color:var(--go);color:#fff}
+.body{flex:1;min-width:0}
+.title{font-weight:500;font-size:14.5px;word-break:break-word}
+.taskno{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  color:var(--ink-45);background:#EDEFEE;border-radius:5px;padding:1px 6px;margin-right:2px}
+.card.done .title{text-decoration:line-through;color:var(--ink-70)}
+.meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;align-items:center}
+.chip{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--steel-bg);color:var(--steel);font-weight:500}
+.chip.client{background:#EDEFEE;color:var(--ink-70)}
+.chip.p-High{background:var(--alert-bg);color:var(--alert)}
+.chip.p-Medium{background:var(--amber-bg);color:var(--amber)}
+.chip.p-Low{background:#E9ECEB;color:var(--ink-45)}
+.chip.ev{background:var(--amber-bg);color:var(--amber)}
+.chip.ev.past{background:var(--alert-bg);color:var(--alert)}
+.chip.ev b{font-family:"IBM Plex Mono",monospace}
+.dates{font-size:11.5px;color:var(--ink-45);margin-top:5px;font-family:"IBM Plex Mono",monospace}
+.flag{font-size:11px;font-weight:600;margin-top:5px}
+.flag.cf{color:var(--alert)}
+.flag.today{color:var(--amber)}
+.flag.done{color:var(--go)}
+
+.empty{
+  background:var(--surface);border:1px dashed var(--line);border-radius:var(--rad);
+  padding:26px 18px;text-align:center;color:var(--ink-45);font-size:13.5px
+}
+.empty b{display:block;color:var(--ink);font-size:15px;font-weight:600;margin-bottom:4px}
+
+/* ---------- filters ---------- */
+.filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.filters input,.filters select{
+  flex:1 1 120px;min-width:0;padding:8px 10px;border:1px solid var(--line);
+  border-radius:8px;background:var(--surface);font-size:13.5px
+}
+
+/* ---------- dashboard ---------- */
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--rad);padding:10px 12px}
+.kpi b{display:block;font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;line-height:1.15}
+.kpi span{font-size:11.5px;color:var(--ink-45)}
+.kpi.bad b{color:var(--alert)} .kpi.warn b{color:var(--amber)} .kpi.good b{color:var(--go)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--rad);padding:12px;margin-bottom:10px}
+.panel h3{font-size:13px;font-weight:600;margin:0 0 10px}
+.chartbox{position:relative;height:240px}
+.bar-row{display:grid;grid-template-columns:96px 1fr 30px;gap:8px;align-items:center;margin-bottom:6px;font-size:12.5px}
+.bar-row .track{height:14px;background:#EDEFEE;border-radius:3px;overflow:hidden;display:flex}
+.bar-row .fill-done{background:var(--go)} .bar-row .fill-open{background:var(--steel)}
+.bar-row .n{text-align:right;font-family:"IBM Plex Mono",monospace;color:var(--ink-45)}
+
+/* ---------- projects ---------- */
+.proj-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--rad);padding:12px;margin-bottom:10px}
+.proj-card.fail{border-left:4px solid var(--alert)}
+.proj-card.complete{border-left:4px solid var(--go)}
+.proj-card .p-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.proj-card .p-name{font-weight:600;font-size:15px}
+.proj-card .p-req{font-size:12.5px;color:var(--ink-70);margin-top:2px}
+.proj-card .p-dates{font-size:11.5px;color:var(--ink-45);margin-top:5px;font-family:"IBM Plex Mono",monospace}
+.proj-card .p-edit{font-size:12px;color:var(--ink-45);padding:4px 6px;flex:0 0 auto}
+.p-bar{height:8px;background:#EDEFEE;border-radius:4px;overflow:hidden;margin:9px 0 3px}
+.p-bar i{display:block;height:100%;background:var(--go);border-radius:4px;transition:width .15s}
+.proj-card.fail .p-bar i{background:var(--alert)}
+.p-pct{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-45)}
+.stagewrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.stagechip{font-size:11px;padding:4px 9px;border-radius:99px;background:#EDEFEE;color:var(--ink-70);
+  border:1px solid var(--line);font-weight:500;white-space:nowrap}
+.stagechip.on{background:var(--go-bg);color:var(--go);border-color:var(--go)}
+.stagechip.on.fail{background:var(--alert-bg);color:var(--alert);border-color:var(--alert)}
+.stagepick{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
+.stagepick label{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:0;cursor:pointer}
+.stagepick input{width:15px;height:15px;margin:0}
+
+/* ---------- data tab ---------- */
+.btn{
+  display:block;width:100%;padding:12px;border-radius:9px;font-size:14.5px;font-weight:600;
+  background:var(--ink);color:#fff;text-align:center;margin-bottom:8px
+}
+.btn.sec{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--surface);color:var(--alert);border:1px solid var(--alert)}
+.hint{font-size:12.5px;color:var(--ink-45);margin:0 2px 12px;line-height:1.5}
+.hint code{background:#E4E8E7;padding:1px 4px;border-radius:4px;font-size:11.5px}
+
+/* ---------- team tab ---------- */
+.user-row{
+  display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--rad);padding:10px 12px;margin-bottom:8px
+}
+.user-row .av{width:34px;height:34px;border-radius:50%;background:var(--steel-bg);color:var(--steel);
+  display:grid;place-items:center;font-weight:700;font-size:13px;flex:0 0 auto}
+.user-row .u-body{flex:1;min-width:0}
+.user-row .u-name{font-weight:600;font-size:14px}
+.user-row .u-meta{font-size:11.5px;color:var(--ink-45)}
+.role-pill{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.3px}
+.role-pill.admin{background:var(--amber-bg);color:var(--amber)}
+.role-pill.member{background:#EDEFEE;color:var(--ink-45)}
+.user-row select{border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:12px;background:var(--surface)}
+
+/* ---------- bottom nav + fab ---------- */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;background:var(--surface);
+  border-top:1px solid var(--line);padding-bottom:var(--safe-b)
+}
+nav button{flex:1;padding:9px 4px 8px;font-size:10.5px;color:var(--ink-45);font-weight:500}
+nav button .ic{display:block;font-size:17px;line-height:1.3}
+nav button.on{color:var(--ink)}
+nav button.on .ic{color:var(--steel)}
+.fab{
+  position:fixed;right:16px;bottom:calc(84px + var(--safe-b));z-index:46;width:54px;height:54px;
+  border-radius:50%;background:var(--ink);color:#fff;font-size:28px;line-height:1;
+  box-shadow:0 6px 18px rgba(20,35,43,.32)
+}
+
+/* ---------- sheet ---------- */
+.scrim{position:fixed;inset:0;background:rgba(20,35,43,.45);z-index:60;display:none}
+.scrim.open{display:block}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;top:0;z-index:70;background:var(--paper);
+  transform:translateY(100%);transition:transform .22s ease;overflow-y:auto;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(24px + var(--safe-b))
+}
+.sheet.open{transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){.sheet{transition:none}#authScreen{transition:none}}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sheet-head h2{font-size:17px;margin:0;font-weight:600}
+.sheet-head button{font-size:14px;color:var(--ink-45);padding:6px}
+label{display:block;font-size:12px;font-weight:600;color:var(--ink-70);margin:0 0 4px}
+.field{margin-bottom:11px}
+.field input,.field select,.field textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface);font-size:15px
+}
+.field textarea{min-height:60px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.note{font-size:11.5px;color:var(--ink-45);margin:-6px 0 11px}
+.sheet .btn{margin-top:4px}
+.del{text-align:center;color:var(--alert);font-size:13.5px;padding:12px;width:100%}
+
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + var(--safe-b));z-index:90;
+  background:var(--ink);color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .18s
+}
+.toast.on{opacity:1}
+@media(min-width:620px){
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .sheet{left:50%;transform:translate(-50%,100%);width:560px;top:24px;border-radius:14px 14px 0 0}
+  .sheet.open{transform:translate(-50%,0)}
+}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="auth-card">
+    <h1>Project Task Tracker</h1>
+    <p class="sub">Sign in to sync your tasks across every device.</p>
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-field"><label for="au_user">Username</label><input id="au_user" autocomplete="username" placeholder="e.g. suyash"></div>
+    <div class="auth-field"><label for="au_pass">Password</label><input id="au_pass" type="password" autocomplete="current-password"></div>
+    <button class="auth-btn" id="au_go">Sign in</button>
+    <p class="auth-note">Accounts are created by your admin. There's no self-signup — ask the admin to add you from the Team tab once you're in.</p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <div class="brand">
+    <h1>Project Task Tracker</h1>
+    <div class="brand-right">
+      <span class="who" id="whoChip"></span>
+      <span class="today" id="todayLabel"></span>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="rail" id="rail"></div>
+</header>
+
+<main id="view"></main>
+
+<button class="fab" id="fab" aria-label="Add task">+</button>
+
+<nav id="bottomNav">
+  <button data-tab="today" class="on"><span class="ic">◈</span>Today</button>
+  <button data-tab="log"><span class="ic">≡</span>All tasks</button>
+  <button data-tab="proj"><span class="ic">▣</span>Projects</button>
+  <button data-tab="dash"><span class="ic">▥</span>Charts</button>
+  <button data-tab="data"><span class="ic">⇅</span>Excel</button>
+</nav>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<div class="toast" id="toast"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script type="module">
+/* ======================================================================
+   FIREBASE CONFIG — fill in the three PASTE_ values from:
+   Firebase console → Project settings (gear icon) → General →
+   "Your apps" → the web app → SDK setup and configuration → Config.
+   The other four are already filled in from your database URL.
+   ====================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDc0gjrq4CG1ADP58UerDhnJtuztZYyKyY",
+  authDomain: "task-tracker-25da0.firebaseapp.com",
+  databaseURL: "https://task-tracker-25da0-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "task-tracker-25da0",
+  storageBucket: "task-tracker-25da0.appspot.com",
+  messagingSenderId: "738837430558",
+  appId: "1:738837430558:web:cb6fb459a72eb4d37f890f"
+};
+const EMAIL_DOMAIN = "tasktracker.local"; // usernames become username@tasktracker.local internally
+
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword,
+  createUserWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getDatabase, ref, onValue, set, update, remove
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+
+const fb = initializeApp(firebaseConfig);
+const auth = getAuth(fb);
+const db = getDatabase(fb);
+setPersistence(auth, browserLocalPersistence).catch(()=>{});
+
+/* ============================ constants ============================ */
+const VERTICALS=["Defence","Industry","Tenders","RPTO","RPTO Establishment","DaaS","V V Yatra","Redington","CoE","Global","Agri Drone","Agri Services"];
+const ORDER_TYPES=["Drone Sale - Govt Order","Drone Sale - Private","Service / DaaS","Tender / Bid","Training","Internal / Admin"];
+const EVENT_TYPES=["Demo","Delivery / Dispatch","Inspection","Tender Submission","Training Batch","Site Survey","Go-Live","Review Meeting","Payment / Invoice","Other"];
+const PRIORITIES=["High","Medium","Low"];
+const STATUSES=["Not Started","In Progress","On Hold","Completed"];
+const HEADERS=["Task ID","Assigned To","Date Logged","Vertical","Task Description","Client / Customer","Order Type","Priority","Due Date","Execution / Event Date","Event Type","Status","Completed Date","Active Date","Day Status","Days to Event","Ageing (Days)","Open Seq","Remarks"];
+const STAGES=["L1","BOQ","TEC","Awarded","Procurement","Inventory","Production","QC","Testing","Dispatch","Delivered","Payment","Documentation","Failed"];
+const PROJECT_HEADERS=["Project ID","Project Name","Vertical","Requirements","Start Date","End Date",...STAGES,"% Complete","Overall Status"];
+
+/* ============================ date helpers ============================ */
+const iso=d=>{const x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
+const TODAY=()=>iso(new Date());
+const parse=s=>s?new Date(s+"T00:00:00"):null;
+const days=(a,b)=>Math.round((parse(a)-parse(b))/864e5);
+const fmt=s=>{if(!s)return"";const d=parse(s);return String(d.getDate()).padStart(2,"0")+" "+d.toLocaleString("en",{month:"short"});};
+const fmtFull=s=>{if(!s)return"—";const d=parse(s);return String(d.getDate()).padStart(2,"0")+" "+d.toLocaleString("en",{month:"short"})+" "+d.getFullYear();};
+
+/* ============================ derived fields ============================ */
+function dayStatus(t){
+  if(t.status==="Completed")return"Completed";
+  if(!t.due)return"No Due Date";
+  const d=days(t.due,TODAY());
+  return d<0?"Carried Forward":d===0?"Due Today":"Upcoming";
+}
+function activeDate(t){
+  if(t.status==="Completed")return t.completed||t.due||"";
+  if(!t.due)return"";
+  return days(t.due,TODAY())<0?TODAY():t.due;
+}
+const daysToEvent=t=>(t.event&&t.status!=="Completed")?days(t.event,TODAY()):null;
+function ageing(t){
+  if(!t.logged)return"";
+  return t.status==="Completed"?(t.completed?days(t.completed,t.logged):""):days(TODAY(),t.logged);
+}
+const isOpen=t=>t.status!=="Completed";
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ============================ auth state ============================ */
+let currentUid=null, currentUsername="", currentRole="member";
+let tasks=[];
+let projects=[];
+let taskListenerOff=null, profileListenerOff=null, teamListenerOff=null, projectListenerOff=null;
+let team={}; // uid -> profile, admin only
+
+/* ============================ project derived fields ============================ */
+function reqStages(p){ return STAGES.filter(s=>p.stages&&p.stages[s]); }
+function donePct(p){ const req=reqStages(p); if(!req.length)return 0;
+  const d=req.filter(s=>p.done&&p.done[s]).length; return Math.round(d/req.length*100); }
+function projStatus(p){ if(p.done&&p.done["Failed"])return"Failed";
+  return donePct(p)===100?"Completed":"In Progress"; }
+
+function usernameToEmail(u){ return u.trim().toLowerCase().replace(/[^a-z0-9._-]/g,"") + "@" + EMAIL_DOMAIN; }
+
+document.getElementById("au_go").onclick = doSignIn;
+document.getElementById("au_pass").addEventListener("keydown", e=>{ if(e.key==="Enter") doSignIn(); });
+
+async function doSignIn(){
+  const u=document.getElementById("au_user").value.trim();
+  const p=document.getElementById("au_pass").value;
+  const err=document.getElementById("authErr");
+  err.classList.remove("on");
+  if(!u||!p){ err.textContent="Enter your username and password."; err.classList.add("on"); return; }
+  const btn=document.getElementById("au_go"); btn.disabled=true; btn.textContent="Signing in…";
+  try{
+    await signInWithEmailAndPassword(auth, usernameToEmail(u), p);
+  }catch(e){
+    err.textContent = e.code==="auth/invalid-credential" || e.code==="auth/wrong-password" || e.code==="auth/user-not-found"
+      ? "Wrong username or password."
+      : e.code==="auth/too-many-requests" ? "Too many attempts — wait a moment and try again."
+      : "Couldn't sign in. Check your connection.";
+    err.classList.add("on");
+  }finally{
+    btn.disabled=false; btn.textContent="Sign in";
+  }
+}
+
+onAuthStateChanged(auth, user=>{
+  cleanupListeners();
+  if(!user){
+    currentUid=null;
+    document.getElementById("authScreen").style.display="flex";
+    document.getElementById("app").style.display="none";
+    return;
+  }
+  currentUid=user.uid;
+  document.getElementById("authScreen").style.display="none";
+  document.getElementById("app").style.display="block";
+
+  // profile (username, role) — realtime, so a role change by an admin applies immediately
+  profileListenerOff = onValue(ref(db, `users/${currentUid}/profile`), snap=>{
+    const p=snap.val()||{};
+    currentUsername = p.username || (user.email||"").split("@")[0];
+    currentRole = p.role || "member";
+    updateNavForRole();
+    renderWho();
+  });
+
+  // this user's own tasks — realtime
+  taskListenerOff = onValue(ref(db, `users/${currentUid}/tasks`), snap=>{
+    const val = snap.val() || {};
+    tasks = Object.keys(val).map(id=>Object.assign({id}, val[id]));
+    render();
+  });
+
+  // this user's own projects — realtime
+  projectListenerOff = onValue(ref(db, `users/${currentUid}/projects`), snap=>{
+    const val = snap.val() || {};
+    projects = Object.keys(val).map(id=>Object.assign({id}, val[id]));
+    render();
+  });
+});
+
+function cleanupListeners(){
+  if(taskListenerOff){taskListenerOff();taskListenerOff=null;}
+  if(profileListenerOff){profileListenerOff();profileListenerOff=null;}
+  if(teamListenerOff){teamListenerOff();teamListenerOff=null;}
+  if(projectListenerOff){projectListenerOff();projectListenerOff=null;}
+  tasks=[]; projects=[]; team={};
+}
+
+function renderWho(){
+  const el=document.getElementById("whoChip");
+  el.innerHTML = `<span class="dot"></span>${esc(currentUsername)}${currentRole==="admin"?" · admin":""}`;
+  el.onclick = doSignOut;
+  el.style.cursor="pointer";
+}
+function doSignOut(){
+  if(confirm("Sign out of the task tracker?")) signOut(auth);
+}
+function updateNavForRole(){
+  const nav=document.getElementById("bottomNav");
+  if(currentRole==="admin" && !document.getElementById("navTeam")){
+    const b=document.createElement("button");
+    b.id="navTeam"; b.dataset.tab="team";
+    b.innerHTML=`<span class="ic">◉</span>Team`;
+    nav.appendChild(b);
+  }
+  if(currentRole!=="admin"){
+    const b=document.getElementById("navTeam"); if(b) b.remove();
+    if(tab==="team"){tab="today";}
+  }
+  if(currentRole==="admin") subscribeTeam();
+}
+function subscribeTeam(){
+  if(teamListenerOff) return;
+  teamListenerOff = onValue(ref(db, "users"), snap=>{
+    const val=snap.val()||{};
+    team={};
+    Object.keys(val).forEach(uid=>{ team[uid]=(val[uid].profile)||{}; });
+    if(tab==="team") render();
+  });
+}
+
+/* ============================ CRUD → Firebase ============================ */
+function newTaskId(){ return "t"+Date.now()+Math.random().toString(36).slice(2,7); }
+
+function upsertTask(rec){
+  const id = rec.id || newTaskId();
+  const {id:_drop, ...data} = rec;
+  return set(ref(db, `users/${currentUid}/tasks/${id}`), data);
+}
+function deleteTask(id){
+  return remove(ref(db, `users/${currentUid}/tasks/${id}`));
+}
+function toggleComplete(t){
+  if(t.status==="Completed"){
+    return update(ref(db, `users/${currentUid}/tasks/${t.id}`), {status:"In Progress", completed:""});
+  }
+  return update(ref(db, `users/${currentUid}/tasks/${t.id}`), {status:"Completed", completed:TODAY()});
+}
+
+/* ---- projects ---- */
+function newProjectId(){ return "p"+Date.now()+Math.random().toString(36).slice(2,7); }
+function upsertProject(rec){
+  const id = rec.id || newProjectId();
+  const {id:_drop, ...data} = rec;
+  return set(ref(db, `users/${currentUid}/projects/${id}`), data);
+}
+function deleteProject(id){
+  return remove(ref(db, `users/${currentUid}/projects/${id}`));
+}
+function toggleStage(pid, stage){
+  const p=projects.find(x=>x.id===pid); if(!p) return Promise.resolve();
+  const cur=!!(p.done&&p.done[stage]);
+  return update(ref(db, `users/${currentUid}/projects/${pid}/done`), {[stage]: !cur});
+}
+
+/* ============================ ui state ============================ */
+let tab="today", selDate=TODAY(), filt={q:"",v:"",s:""};
+let taskIds={}; // recomputed every render: daily 1..n numbering, carry-forwards first
+
+/* ============================ header ============================ */
+function renderHeader(){
+  document.getElementById("todayLabel").textContent=fmtFull(TODAY()).toUpperCase();
+  const open=tasks.filter(isOpen);
+  const cf=open.filter(t=>dayStatus(t)==="Carried Forward").length;
+  const dt=open.filter(t=>dayStatus(t)==="Due Today").length;
+  const ev=open.filter(t=>{const d=daysToEvent(t);return d!==null&&d>=0&&d<=7;}).length;
+  const miss=open.filter(t=>{const d=daysToEvent(t);return d!==null&&d<0;}).length;
+  const s=[["Open",open.length,""],["Carried fwd",cf,cf?"bad":""],["Due today",dt,dt?"warn":""],
+           ["Events ≤7d",ev,ev?"warn":""],["Dates missed",miss,miss?"bad":""],
+           ["Done",tasks.length-open.length,"good"]];
+  document.getElementById("stats").innerHTML=s.map(([l,n,c])=>
+    `<div class="stat ${c}"><b>${n}</b><span>${l}</span></div>`).join("");
+
+  const rail=[];
+  for(let i=-6;i<=20;i++){
+    const d=new Date();d.setDate(d.getDate()+i);const k=iso(d);
+    const n=tasksFor(k).length;
+    rail.push(`<button class="day ${k===selDate?"sel":""} ${k===TODAY()?"is-today":""}" data-date="${k}">
+      <div class="dow">${d.toLocaleString("en",{weekday:"short"}).toUpperCase()}</div>
+      <div class="num">${String(d.getDate()).padStart(2,"0")}</div>
+      <div class="mon">${d.toLocaleString("en",{month:"short"})}</div>
+      <div class="pip ${n?"on":""}"></div></button>`);
+  }
+  document.getElementById("rail").innerHTML=rail.join("");
+}
+
+function tasksFor(date){
+  const t0=TODAY();
+  if(date===t0) return tasks.filter(t=>isOpen(t)&&(!t.due||days(t.due,t0)<=0||t.event===t0));
+  if(date>t0) return tasks.filter(t=>isOpen(t)&&(t.due===date||t.event===date));
+  return tasks.filter(t=>t.completed===date||t.due===date||t.event===date);
+}
+
+/* ============================ cards ============================ */
+function card(t){
+  const st=dayStatus(t), dte=daysToEvent(t);
+  const cls=st==="Completed"?"done":st==="Carried Forward"?"cf":st==="Due Today"?"today":"";
+  const evChip=t.event?`<span class="chip ev ${dte!==null&&dte<0?"past":""}">${t.eventType||"Event"} ${fmt(t.event)}${
+    dte!==null?` · <b>${dte<0?Math.abs(dte)+"d late":dte===0?"today":dte+"d"}</b>`:""}</span>`:"";
+  const flag=st==="Carried Forward"?`<div class="flag cf">Carried forward · ${Math.abs(days(t.due,TODAY()))} day(s) overdue</div>`
+    :st==="Due Today"?`<div class="flag today">Due today</div>`
+    :st==="Completed"?`<div class="flag done">Completed ${fmt(t.completed)}</div>`:"";
+  const idNo=taskIds[t.id];
+  return `<article class="card ${cls}" data-id="${t.id}">
+    <button class="tick" data-tick="${t.id}" aria-label="Mark complete">✓</button>
+    <div class="body" data-edit="${t.id}">
+      <div class="title">${idNo?`<span class="taskno">#${idNo}</span> `:""}${esc(t.task)}</div>
+      <div class="meta">
+        <span class="chip">${esc(t.vertical||"—")}</span>
+        ${t.client?`<span class="chip client">${esc(t.client)}</span>`:""}
+        ${t.assignedTo?`<span class="chip">👤 ${esc(t.assignedTo)}</span>`:""}
+        ${t.priority?`<span class="chip p-${t.priority}">${t.priority}</span>`:""}
+        ${evChip}
+      </div>
+      <div class="dates">Due ${fmt(t.due)||"—"}${t.status&&t.status!=="Completed"?" · "+t.status:""}</div>
+      ${flag}
+    </div></article>`;
+}
+
+/* ============================ views ============================ */
+function viewToday(){
+  const list=tasksFor(selDate).sort((a,b)=>{
+    const o={"Carried Forward":0,"Due Today":1,"Upcoming":2,"No Due Date":3,"Completed":4};
+    const d=o[dayStatus(a)]-o[dayStatus(b)];if(d)return d;
+    return PRIORITIES.indexOf(a.priority)-PRIORITIES.indexOf(b.priority);
+  });
+  const head=selDate===TODAY()?"Today's plan":selDate>TODAY()?"Planned for "+fmtFull(selDate):"On "+fmtFull(selDate);
+  if(!list.length)return `<div class="section-head"><h2>${head}</h2></div>
+    <div class="empty"><b>Nothing on this date</b>Tap + to add a task, or pick another date above.</div>`;
+  return `<div class="section-head"><h2>${head}</h2><span class="count">${list.length} task(s)</span></div>`
+    +list.map(card).join("");
+}
+
+function viewLog(){
+  const list=tasks.filter(t=>
+    (!filt.q||(t.task+" "+(t.client||"")+" "+(t.remarks||"")).toLowerCase().includes(filt.q.toLowerCase()))
+    &&(!filt.v||t.vertical===filt.v)
+    &&(!filt.s||(filt.s==="Open"?isOpen(t):t.status===filt.s)))
+    .sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999"));
+  return `<div class="filters">
+      <input id="fq" placeholder="Search task or client" value="${esc(filt.q)}">
+      <select id="fv"><option value="">All verticals</option>${VERTICALS.map(v=>`<option ${filt.v===v?"selected":""}>${v}</option>`).join("")}</select>
+      <select id="fs"><option value="">All statuses</option><option ${filt.s==="Open"?"selected":""}>Open</option>${STATUSES.map(s=>`<option ${filt.s===s?"selected":""}>${s}</option>`).join("")}</select>
+    </div>
+    <div class="section-head"><h2>All tasks</h2><span class="count">${list.length} of ${tasks.length}</span></div>`
+    +(list.length?list.map(card).join("")
+      :`<div class="empty"><b>No matches</b>Clear the filters to see everything.</div>`);
+}
+
+function viewDash(){
+  const open=tasks.filter(isOpen), done=tasks.length-open.length;
+  const cf=open.filter(t=>dayStatus(t)==="Carried Forward").length;
+  const ev30=open.filter(t=>{const d=daysToEvent(t);return d!==null&&d>=0&&d<=30;}).length;
+  const pct=tasks.length?Math.round(done/tasks.length*100):0;
+  const k=[["Total",tasks.length,""],["Open",open.length,""],["Completed",done,"good"],
+           ["Carried forward",cf,cf?"bad":""],["Events next 30d",ev30,"warn"],["Completion",pct+"%","good"]];
+  const byVert=VERTICALS.map(v=>({v,
+    d:tasks.filter(t=>t.vertical===v&&!isOpen(t)).length,
+    o:tasks.filter(t=>t.vertical===v&&isOpen(t)).length})).filter(r=>r.d+r.o);
+  const max=Math.max(1,...byVert.map(r=>r.d+r.o));
+  return `<div class="kpis">${k.map(([l,n,c])=>`<div class="kpi ${c}"><b>${n}</b><span>${l}</span></div>`).join("")}</div>
+    <div class="panel"><h3>Tasks by vertical</h3>
+      ${byVert.length?byVert.map(r=>`<div class="bar-row"><span>${r.v}</span>
+        <span class="track"><i class="fill-done" style="width:${r.d/max*100}%"></i><i class="fill-open" style="width:${r.o/max*100}%"></i></span>
+        <span class="n">${r.d+r.o}</span></div>`).join("")
+        +`<div class="hint" style="margin:8px 0 0">Green = completed · blue = open</div>`
+        :`<div class="empty">No tasks yet</div>`}</div>
+    <div class="panel"><h3>Status split</h3><div class="chartbox"><canvas id="cStatus"></canvas></div></div>
+    <div class="panel"><h3>Open tasks by priority</h3><div class="chartbox"><canvas id="cPri"></canvas></div></div>
+    <div class="panel"><h3>Last 14 days — due vs completed</h3><div class="chartbox"><canvas id="cTrend"></canvas></div></div>
+    <div class="panel"><h3>Upcoming events by type (next 30 days)</h3><div class="chartbox"><canvas id="cEvent"></canvas></div></div>`;
+}
+
+function drawCharts(){
+  if(typeof Chart==="undefined")return;
+  const steel="#2C5F73",go="#15715A",amber="#C47A14",alert="#A93325",grey="#B9C3C1";
+  Chart.defaults.font.family="'IBM Plex Sans',sans-serif";
+  Chart.defaults.color="#42565f";
+  const mk=(id,cfg)=>{const el=document.getElementById(id);if(!el)return;
+    if(el._c)el._c.destroy();el._c=new Chart(el,cfg);};
+
+  mk("cStatus",{type:"doughnut",
+    data:{labels:STATUSES,datasets:[{data:STATUSES.map(s=>tasks.filter(t=>t.status===s).length),
+      backgroundColor:[grey,steel,amber,go],borderWidth:0}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12,padding:12}}}}});
+
+  mk("cPri",{type:"bar",
+    data:{labels:PRIORITIES,datasets:[{label:"Open",
+      data:PRIORITIES.map(p=>tasks.filter(t=>t.priority===p&&isOpen(t)).length),
+      backgroundColor:[alert,amber,grey],borderRadius:3}]},
+    options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
+
+  const lab=[],due=[],comp=[];
+  for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=iso(d);
+    lab.push(fmt(k));due.push(tasks.filter(t=>t.due===k).length);comp.push(tasks.filter(t=>t.completed===k).length);}
+  mk("cTrend",{type:"line",
+    data:{labels:lab,datasets:[
+      {label:"Due",data:due,borderColor:steel,backgroundColor:steel,tension:.3,pointRadius:2},
+      {label:"Completed",data:comp,borderColor:go,backgroundColor:go,tension:.3,pointRadius:2}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12}}},
+      scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+
+  const et=EVENT_TYPES.map(e=>tasks.filter(t=>t.eventType===e&&isOpen(t)&&t.event
+    &&days(t.event,TODAY())>=0&&days(t.event,TODAY())<=30).length);
+  mk("cEvent",{type:"bar",
+    data:{labels:EVENT_TYPES,datasets:[{label:"Events",data:et,backgroundColor:amber,borderRadius:3}]},
+    options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+
+function projectCard(p){
+  const req=reqStages(p), pct=donePct(p), st=projStatus(p);
+  const cls=st==="Failed"?"fail":st==="Completed"?"complete":"";
+  const chips=req.map(s=>{
+    const on=!!(p.done&&p.done[s]);
+    return `<button class="stagechip ${on?"on":""} ${s==="Failed"&&on?"fail":""}" data-stage-toggle="${p.id}|${s}">${on?"✓ ":""}${s}</button>`;
+  }).join("");
+  return `<article class="proj-card ${cls}" data-id="${p.id}">
+    <div class="p-top">
+      <div>
+        <div class="p-name">${p.projectId?`<span class="taskno">${esc(p.projectId)}</span> `:""}${esc(p.name)}</div>
+        <div class="meta" style="margin-top:4px">
+          ${p.vertical?`<span class="chip">${esc(p.vertical)}</span>`:""}
+        </div>
+        ${p.requirements?`<div class="p-req">${esc(p.requirements)}</div>`:""}
+        <div class="p-dates">${fmt(p.start)||"—"} → ${fmt(p.end)||"—"}</div>
+      </div>
+      <button class="p-edit" data-proj-edit="${p.id}">Edit</button>
+    </div>
+    <div class="p-bar"><i style="width:${pct}%"></i></div>
+    <div class="p-pct">${pct}% complete (${req.filter(s=>p.done&&p.done[s]).length}/${req.length} stages)${st==="Failed"?" · Failed":""}</div>
+    ${req.length?`<div class="stagewrap">${chips}</div>`:`<div class="hint" style="margin:8px 0 0">No stages selected yet — tap Edit to choose which apply.</div>`}
+  </article>`;
+}
+
+function viewProjects(){
+  const list=[...projects].sort((a,b)=>(b.start||"").localeCompare(a.start||""));
+  if(!list.length)return `<div class="section-head"><h2>Projects</h2></div>
+    <div class="empty"><b>No projects yet</b>Tap + to add a project — name, short requirements, dates, and which stages apply.</div>`;
+  return `<div class="section-head"><h2>Projects</h2><span class="count">${list.length} project(s)</span></div>
+    <p class="hint">Tap a stage chip on a project to mark it done or undo it. % complete is done stages ÷ stages you selected for that project.</p>`
+    +list.map(projectCard).join("");
+}
+
+function viewData(){
+  return `<div class="section-head"><h2>Excel in and out</h2></div>
+    <p class="hint">Your tasks and projects are stored in the cloud against your account, so they already follow you between phone and laptop. Use these to move them into the shared workbook — the file has a <code>Task Log</code> sheet and a <code>Projects</code> sheet.</p>
+    <button class="btn" id="btnExport">Export to Excel</button>
+    <button class="btn sec" id="btnImportWrap">Import from Excel</button>
+    <input type="file" id="fileIn" accept=".xlsx,.xls,.csv" style="display:none">
+    <p class="hint">Import reads <code>Task Log</code> and <code>Projects</code> by name. A task row matching an existing task, vertical and due date is updated instead of duplicated; a project row matching an existing project name and start date works the same way.</p>
+    <button class="btn sec" id="btnJson">Download a JSON backup</button>
+    <p class="hint">${tasks.length} task(s), ${projects.length} project(s) in your account. For a workbook that stays in sync automatically (not just export/import by hand), see the "Google Sheets live sync" section of the README.</p>`;
+}
+
+function viewTeam(){
+  if(currentRole!=="admin") return `<div class="empty"><b>Admin only</b>Ask your admin for access.</div>`;
+  const uids=Object.keys(team);
+  const rows=uids.map(uid=>{
+    const p=team[uid]||{};
+    const name=p.username||"(unnamed)";
+    return `<div class="user-row">
+      <div class="av">${esc(name).slice(0,1).toUpperCase()}</div>
+      <div class="u-body">
+        <div class="u-name">${esc(name)} ${uid===currentUid?"(you)":""}</div>
+        <div class="u-meta">${p.createdAt?("added "+fmtFull(iso(new Date(p.createdAt)))):""}</div>
+      </div>
+      <span class="role-pill ${p.role==='admin'?'admin':'member'}">${p.role||'member'}</span>
+      ${uid!==currentUid?`<select data-role-uid="${uid}">
+        <option value="member" ${p.role!=='admin'?'selected':''}>Member</option>
+        <option value="admin" ${p.role==='admin'?'selected':''}>Admin</option>
+      </select>`:""}
+    </div>`;
+  }).join("");
+  return `<div class="section-head"><h2>Team</h2><span class="count">${uids.length} user(s)</span></div>
+    <button class="btn" id="btnAddUser">Add user</button>
+    ${rows||`<div class="empty"><b>No users yet</b></div>`}
+    <p class="hint" style="margin-top:14px">Each person's tasks are stored under their own account and no one but an admin can read another member's tasks. Removing someone's access has to be done from the Firebase console (Authentication tab) — deleting the sign-in there blocks them immediately.</p>`;
+}
+
+/* ============================ render ============================ */
+/* ============================ daily task numbering ============================ */
+// Task ID resets every day, starting at 1. Carried-forward open tasks (logged before
+// today, still not Completed) are numbered first; tasks added today come after them.
+// Completed tasks carry no number.
+function buildTaskIds(){
+  const today=TODAY();
+  const open=tasks.filter(t=>t.status!=="Completed");
+  const carry=open.filter(t=>t.logged&&t.logged<today);
+  const added=open.filter(t=>!(t.logged&&t.logged<today));
+  const byDue=(a,b)=>(a.due||"9999-99-99").localeCompare(b.due||"9999-99-99")||(a.logged||"").localeCompare(b.logged||"")||a.id.localeCompare(b.id);
+  carry.sort(byDue); added.sort(byDue);
+  const map={};
+  [...carry,...added].forEach((t,i)=>{ map[t.id]=i+1; });
+  return map;
+}
+
+function render(){
+  if(!currentUid) return;
+  taskIds=buildTaskIds();
+  renderHeader();
+  const v=document.getElementById("view");
+  v.innerHTML = tab==="today"?viewToday(): tab==="log"?viewLog(): tab==="proj"?viewProjects(): tab==="dash"?viewDash():
+                tab==="team"?viewTeam(): viewData();
+  if(tab==="dash")drawCharts();
+  if(tab==="log"){
+    const q=document.getElementById("fq");
+    q.oninput=e=>{filt.q=e.target.value;const p=e.target.selectionStart;render();
+      const n=document.getElementById("fq");n.focus();n.setSelectionRange(p,p);};
+    document.getElementById("fv").onchange=e=>{filt.v=e.target.value;render();};
+    document.getElementById("fs").onchange=e=>{filt.s=e.target.value;render();};
+  }
+  if(tab==="data")wireData();
+  if(tab==="team")wireTeam();
+  document.querySelectorAll("#bottomNav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+}
+
+/* ============================ task sheet ============================ */
+function openSheet(id){
+  const t=id?tasks.find(x=>x.id===id):{id:null,logged:TODAY(),vertical:"",task:"",client:"",assignedTo:"",
+    orderType:"",priority:"Medium",due:TODAY(),event:"",eventType:"",status:"Not Started",completed:"",remarks:""};
+  const opts=(arr,sel)=>arr.map(o=>`<option ${o===sel?"selected":""}>${o}</option>`).join("");
+  const idNo=id?taskIds[id]:null;
+  document.getElementById("sheet").innerHTML=`
+    <div class="sheet-head"><h2>${id?"Edit task":"New task"}</h2><button id="close">Close</button></div>
+    ${id?`<p class="note">Task ID today: ${idNo?"#"+idNo:"— (completed, no longer numbered)"}. Renumbers itself every day — carried-forward tasks first, so this isn't something you set by hand.</p>`
+        :`<p class="note">Task ID is assigned automatically once saved — carried-forward tasks get the lowest numbers each day, new ones follow.</p>`}
+    <div class="field"><label for="f_task">Task</label><textarea id="f_task" placeholder="What has to be done">${esc(t.task)}</textarea></div>
+    <div class="two">
+      <div class="field"><label for="f_vert">Vertical</label><select id="f_vert"><option value=""></option>${opts(VERTICALS,t.vertical)}</select></div>
+      <div class="field"><label for="f_pri">Priority</label><select id="f_pri">${opts(PRIORITIES,t.priority)}</select></div>
+    </div>
+    <div class="field"><label for="f_assigned">Assigned to</label><input id="f_assigned" value="${esc(t.assignedTo)}" placeholder="Who's doing this"></div>
+    <div class="field"><label for="f_client">Client / customer</label><input id="f_client" value="${esc(t.client)}" placeholder="Who it is for"></div>
+    <div class="field"><label for="f_order">Order type</label><select id="f_order"><option value=""></option>${opts(ORDER_TYPES,t.orderType)}</select></div>
+    <div class="two">
+      <div class="field"><label for="f_logged">Date logged</label><input type="date" id="f_logged" value="${t.logged||""}"></div>
+      <div class="field"><label for="f_due">Due date</label><input type="date" id="f_due" value="${t.due||""}"></div>
+    </div>
+    <p class="note">Due date = when your step must be finished. Miss it and the task carries forward on its own.</p>
+    <div class="two">
+      <div class="field"><label for="f_event">Execution / event date</label><input type="date" id="f_event" value="${t.event||""}"></div>
+      <div class="field"><label for="f_etype">Event type</label><select id="f_etype"><option value=""></option>${opts(EVENT_TYPES,t.eventType)}</select></div>
+    </div>
+    <p class="note">Event date = the committed date in front of the client — demo, dispatch, inspection, tender deadline.</p>
+    <div class="two">
+      <div class="field"><label for="f_status">Status</label><select id="f_status">${opts(STATUSES,t.status)}</select></div>
+      <div class="field"><label for="f_done">Completed date</label><input type="date" id="f_done" value="${t.completed||""}"></div>
+    </div>
+    <div class="field"><label for="f_rem">Remarks</label><textarea id="f_rem">${esc(t.remarks)}</textarea></div>
+    <button class="btn" id="f_save">${id?"Save changes":"Add task"}</button>
+    ${id?`<button class="del" id="f_del">Delete this task</button>`:""}`;
+  document.getElementById("scrim").classList.add("open");
+  document.getElementById("sheet").classList.add("open");
+  const g=i=>document.getElementById(i).value.trim();
+  document.getElementById("close").onclick=closeSheet;
+  document.getElementById("f_status").onchange=e=>{
+    const d=document.getElementById("f_done");
+    if(e.target.value==="Completed"&&!d.value)d.value=TODAY();
+    if(e.target.value!=="Completed")d.value="";
+  };
+  document.getElementById("f_save").onclick=async()=>{
+    if(!g("f_task")){toast("Add a task description first");return;}
+    const rec={id:id||undefined,logged:g("f_logged")||TODAY(),vertical:g("f_vert"),task:g("f_task"),
+      client:g("f_client"),assignedTo:g("f_assigned"),orderType:g("f_order"),priority:g("f_pri"),due:g("f_due"),event:g("f_event"),
+      eventType:g("f_etype"),status:g("f_status"),completed:g("f_done"),remarks:g("f_rem")};
+    if(rec.status==="Completed"&&!rec.completed)rec.completed=TODAY();
+    if(rec.status!=="Completed")rec.completed="";
+    try{ await upsertTask(rec); closeSheet(); toast(id?"Saved":"Task added"); }
+    catch(e){ toast("Couldn't save — check your connection"); }
+  };
+  if(id)document.getElementById("f_del").onclick=async()=>{
+    try{ await deleteTask(id); closeSheet(); toast("Deleted"); }
+    catch(e){ toast("Couldn't delete — check your connection"); }
+  };
+}
+function closeSheet(){
+  document.getElementById("sheet").classList.remove("open");
+  document.getElementById("scrim").classList.remove("open");
+}
+
+/* ============================ project sheet ============================ */
+function openProjectSheet(id){
+  const p=id?projects.find(x=>x.id===id):{id:null,projectId:"",name:"",vertical:"",requirements:"",start:TODAY(),end:"",stages:{},done:{}};
+  const opts=(arr,sel)=>arr.map(o=>`<option ${o===sel?"selected":""}>${o}</option>`).join("");
+  const stageBoxes=STAGES.map(s=>`<label><input type="checkbox" id="ps_${s}" ${p.stages&&p.stages[s]?"checked":""}>${s}</label>`).join("");
+  document.getElementById("sheet").innerHTML=`
+    <div class="sheet-head"><h2>${id?"Edit project":"New project"}</h2><button id="close">Close</button></div>
+    <div class="two">
+      <div class="field"><label for="p_id">Project ID</label><input id="p_id" value="${esc(p.projectId)}" placeholder="Your own numbering, optional"></div>
+      <div class="field"><label for="p_vert">Vertical</label><select id="p_vert"><option value=""></option>${opts(VERTICALS,p.vertical)}</select></div>
+    </div>
+    <div class="field"><label for="p_name">Project name</label><input id="p_name" value="${esc(p.name)}" placeholder="e.g. VTOL Unit — MoD Order"></div>
+    <div class="field"><label for="p_req">Requirements (short)</label><textarea id="p_req" placeholder="One or two lines">${esc(p.requirements)}</textarea></div>
+    <div class="two">
+      <div class="field"><label for="p_start">Start date</label><input type="date" id="p_start" value="${p.start||""}"></div>
+      <div class="field"><label for="p_end">End date</label><input type="date" id="p_end" value="${p.end||""}"></div>
+    </div>
+    <label style="margin-bottom:6px">Stages that apply to this project</label>
+    <div class="stagepick">${stageBoxes}</div>
+    <p class="note">Tick every stage this project needs, in order. Once saved, tap each stage chip on the project card as it's completed — % complete updates on its own.</p>
+    <button class="btn" id="p_save">${id?"Save changes":"Add project"}</button>
+    ${id?`<button class="del" id="p_del">Delete this project</button>`:""}`;
+  document.getElementById("scrim").classList.add("open");
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("close").onclick=closeSheet;
+  document.getElementById("p_save").onclick=async()=>{
+    const name=document.getElementById("p_name").value.trim();
+    if(!name){toast("Add a project name first");return;}
+    const stages={}; STAGES.forEach(s=>{ if(document.getElementById("ps_"+s).checked) stages[s]=true; });
+    const done=Object.assign({}, p.done||{});
+    Object.keys(done).forEach(s=>{ if(!stages[s]) delete done[s]; }); // drop done flags for stages no longer required
+    const rec={id:id||undefined, name,
+      projectId:document.getElementById("p_id").value.trim(),
+      vertical:document.getElementById("p_vert").value,
+      requirements:document.getElementById("p_req").value.trim(),
+      start:document.getElementById("p_start").value, end:document.getElementById("p_end").value,
+      stages, done};
+    try{ await upsertProject(rec); closeSheet(); toast(id?"Saved":"Project added"); }
+    catch(e){ toast("Couldn't save — check your connection"); }
+  };
+  if(id)document.getElementById("p_del").onclick=async()=>{
+    try{ await deleteProject(id); closeSheet(); toast("Deleted"); }
+    catch(e){ toast("Couldn't delete — check your connection"); }
+  };
+}
+
+/* ============================ admin: add user (secondary app trick) ============================ */
+function openAddUserSheet(){
+  document.getElementById("sheet").innerHTML=`
+    <div class="sheet-head"><h2>Add user</h2><button id="close">Close</button></div>
+    <div class="field"><label for="nu_name">Username</label><input id="nu_name" placeholder="e.g. priya"></div>
+    <div class="field"><label for="nu_pass">Temporary password</label><input id="nu_pass" placeholder="min 6 characters"></div>
+    <div class="field"><label for="nu_role">Role</label><select id="nu_role"><option value="member" selected>Member</option><option value="admin">Admin</option></select></div>
+    <p class="note">Share this password with them directly — they can't reset it themselves yet. Adding them here does not affect your own session.</p>
+    <button class="btn" id="nu_go">Create account</button>`;
+  document.getElementById("scrim").classList.add("open");
+  document.getElementById("sheet").classList.add("open");
+  document.getElementById("close").onclick=closeSheet;
+  document.getElementById("nu_go").onclick=async()=>{
+    const name=document.getElementById("nu_name").value.trim();
+    const pass=document.getElementById("nu_pass").value;
+    const role=document.getElementById("nu_role").value;
+    if(!name||pass.length<6){toast("Username and a 6+ character password are required");return;}
+    const btn=document.getElementById("nu_go");btn.disabled=true;btn.textContent="Creating…";
+    const secondary = initializeApp(firebaseConfig, "secondary-"+Date.now());
+    try{
+      const secAuth=getAuth(secondary);
+      const cred=await createUserWithEmailAndPassword(secAuth, usernameToEmail(name), pass);
+      const uid=cred.user.uid;
+      const secDb=getDatabase(secondary);
+      await set(ref(secDb, `users/${uid}/profile`),
+        {username:name, role, createdAt:Date.now(), createdBy:currentUid});
+      await signOut(secAuth);
+      closeSheet(); toast("User "+name+" created");
+    }catch(e){
+      toast(e.code==="auth/email-already-in-use" ? "That username is already taken"
+        : e.code==="auth/weak-password" ? "Password must be at least 6 characters"
+        : "Couldn't create user — check your connection");
+    }finally{
+      await deleteApp(secondary);
+      btn.disabled=false; btn.textContent="Create account";
+    }
+  };
+}
+function wireTeam(){
+  const add=document.getElementById("btnAddUser");
+  if(add) add.onclick=openAddUserSheet;
+  document.querySelectorAll("[data-role-uid]").forEach(sel=>{
+    sel.onchange=async()=>{
+      const uid=sel.dataset.roleUid, role=sel.value;
+      try{ await update(ref(db, `users/${uid}/profile`), {role}); toast("Role updated"); }
+      catch(e){ toast("Couldn't update role — check your connection"); }
+    };
+  });
+}
+
+/* ============================ excel ============================ */
+function rows(){
+  let seq=0;
+  return tasks.map((t)=>{
+    const open=isOpen(t);if(open)seq++;
+    const dte=daysToEvent(t);
+    return {"Task ID":taskIds[t.id]||"","Assigned To":t.assignedTo||"","Date Logged":t.logged||"","Vertical":t.vertical||"",
+      "Task Description":t.task||"","Client / Customer":t.client||"","Order Type":t.orderType||"",
+      "Priority":t.priority||"","Due Date":t.due||"","Execution / Event Date":t.event||"",
+      "Event Type":t.eventType||"","Status":t.status||"","Completed Date":t.completed||"",
+      "Active Date":activeDate(t),"Day Status":dayStatus(t),
+      "Days to Event":dte===null?"":dte,"Ageing (Days)":ageing(t),
+      "Open Seq":open?seq:"","Remarks":t.remarks||""};
+  });
+}
+function projectRows(){
+  return projects.map((p)=>{
+    const row={"Project ID":p.projectId||"","Project Name":p.name||"","Vertical":p.vertical||"",
+      "Requirements":p.requirements||"","Start Date":p.start||"","End Date":p.end||""};
+    STAGES.forEach(s=>{ row[s]=(p.stages&&p.stages[s])?((p.done&&p.done[s])?"Done":"Pending"):""; });
+    row["% Complete"]=donePct(p);
+    row["Overall Status"]=projStatus(p);
+    return row;
+  });
+}
+function exportXlsx(){
+  if(typeof XLSX==="undefined"){toast("Excel library not loaded — check your connection");return;}
+  const ws=XLSX.utils.json_to_sheet(rows(),{header:HEADERS});
+  ws["!cols"]=[8,16,12,18,42,22,22,9,12,15,18,12,14,12,16,12,12,9,28].map(w=>({wch:w}));
+  ws["!freeze"]={xSplit:0,ySplit:1};
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Task Log");
+  const wsp=XLSX.utils.json_to_sheet(projectRows(),{header:PROJECT_HEADERS});
+  wsp["!cols"]=[12,24,16,34,12,12,...STAGES.map(()=>10),11,13].map(w=>({wch:w}));
+  wsp["!freeze"]={xSplit:0,ySplit:1};
+  XLSX.utils.book_append_sheet(wb,wsp,"Projects");
+  XLSX.writeFile(wb,currentUsername+"_Task_Log_"+TODAY()+".xlsx");
+  toast("Exported "+tasks.length+" task(s), "+projects.length+" project(s)");
+}
+function cell(v){
+  if(v===undefined||v===null||v==="")return"";
+  if(v instanceof Date)return iso(v);
+  if(typeof v==="number"&&v>20000&&v<80000) return iso(new Date(Date.UTC(1899,11,30)+v*864e5));
+  return String(v).trim();
+}
+function importXlsx(file){
+  if(typeof XLSX==="undefined"){toast("Excel library not loaded — check your connection");return;}
+  const fr=new FileReader();
+  fr.onload=async e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array",cellDates:true});
+      const sh=wb.Sheets["Task Log"]||wb.Sheets[wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(sh,{defval:""});
+      let added=0,updated=0;
+      for(const r of data){
+        const task=cell(r["Task Description"]);if(!task)continue;
+        const rec={logged:cell(r["Date Logged"])||TODAY(),vertical:cell(r["Vertical"]),task,
+          client:cell(r["Client / Customer"]),assignedTo:cell(r["Assigned To"]),orderType:cell(r["Order Type"]),
+          priority:cell(r["Priority"])||"Medium",due:cell(r["Due Date"]),
+          event:cell(r["Execution / Event Date"]),eventType:cell(r["Event Type"]),
+          status:cell(r["Status"])||"Not Started",completed:cell(r["Completed Date"]),
+          remarks:cell(r["Remarks"])};
+        const k=x=>(x.task+"|"+x.vertical+"|"+x.due).toLowerCase();
+        const match=tasks.find(x=>k(x)===k(rec));
+        if(match){ rec.id=match.id; await upsertTask(rec); updated++; }
+        else{ await upsertTask(rec); added++; }
+      }
+      let pAdded=0,pUpdated=0;
+      const shp=wb.Sheets["Projects"];
+      if(shp){
+        const pdata=XLSX.utils.sheet_to_json(shp,{defval:""});
+        for(const r of pdata){
+          const name=cell(r["Project Name"]);if(!name)continue;
+          const stages={},done={};
+          STAGES.forEach(s=>{
+            const v=cell(r[s]).toLowerCase();
+            if(v){ stages[s]=true; if(v==="done") done[s]=true; }
+          });
+          const rec={name, projectId:cell(r["Project ID"]), vertical:cell(r["Vertical"]),
+            requirements:cell(r["Requirements"]),
+            start:cell(r["Start Date"]), end:cell(r["End Date"]), stages, done};
+          const k=x=>(x.name+"|"+x.start).toLowerCase();
+          const match=projects.find(x=>k(x)===k(rec));
+          if(match){ rec.id=match.id; await upsertProject(rec); pUpdated++; }
+          else{ await upsertProject(rec); pAdded++; }
+        }
+      }
+      toast(added+" task(s) added, "+updated+" updated"+(shp?" · "+pAdded+" project(s) added, "+pUpdated+" updated":""));
+    }catch(err){toast("Could not read that file");}
+  };
+  fr.readAsArrayBuffer(file);
+}
+function wireData(){
+  document.getElementById("btnExport").onclick=exportXlsx;
+  const f=document.getElementById("fileIn");
+  document.getElementById("btnImportWrap").onclick=()=>f.click();
+  f.onchange=e=>{if(e.target.files[0])importXlsx(e.target.files[0]);e.target.value="";};
+  document.getElementById("btnJson").onclick=()=>{
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(tasks,null,2)],{type:"application/json"}));
+    a.download=currentUsername+"_backup_"+TODAY()+".json";a.click();toast("Backup downloaded");};
+}
+
+/* ============================ events ============================ */
+let tm;
+function toast(m){const el=document.getElementById("toast");el.textContent=m;el.classList.add("on");
+  clearTimeout(tm);tm=setTimeout(()=>el.classList.remove("on"),1900);}
+
+document.addEventListener("click",e=>{
+  const nav=e.target.closest("#bottomNav button");
+  if(nav){tab=nav.dataset.tab;render();return;}
+  const day=e.target.closest(".day");
+  if(day){selDate=day.dataset.date;tab="today";render();
+    day.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});return;}
+  const tick=e.target.closest("[data-tick]");
+  if(tick){const t=tasks.find(x=>x.id===tick.dataset.tick);
+    toggleComplete(t).then(()=>toast(t.status==="Completed"?"Reopened":"Completed today"))
+      .catch(()=>toast("Couldn't update — check your connection"));
+    return;}
+  const ed=e.target.closest("[data-edit]");
+  if(ed){openSheet(ed.dataset.edit);return;}
+  const pe=e.target.closest("[data-proj-edit]");
+  if(pe){openProjectSheet(pe.dataset.projEdit);return;}
+  const stg=e.target.closest("[data-stage-toggle]");
+  if(stg){const [pid,stage]=stg.dataset.stageToggle.split("|");
+    toggleStage(pid,stage).catch(()=>toast("Couldn't update — check your connection"));
+    return;}
+});
+document.getElementById("fab").onclick=()=>{ tab==="proj"?openProjectSheet(null):openSheet(null); };
+document.getElementById("scrim").onclick=closeSheet;
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
